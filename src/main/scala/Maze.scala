@@ -1,51 +1,58 @@
-case class Maze (
+case class Maze(
   rows: Int,
   columns: Int,
-  cells: Array[Cell]
-){
+  cells: List[Cell]
+) {
 
-  def traverse: Path = {
-    entrance.map{ e =>
+  def shortestPathFromEntrance: Path = {
+    cells.find(_.value == 'e').flatMap { entrance =>
+      shortestPath(entrance, Path(List.empty))
+    }.fold(Path(List.empty))(x => x)
+  }
 
+  private def shortestPath(current: Cell, path: Path): Option[Path] = {
+    current.value match {
+      case 'e' | 'o' =>
 
+        val pathDown = down(current).flatMap(s => step(s, path))
+        val pathLeft = left(current).flatMap(s => step(s, path))
+        val pathUp = up(current).flatMap(s => step(s, path))
+        val pathRight = right(current).flatMap(s => step(s, path))
+        (pathUp ++ pathLeft ++ pathRight ++ pathDown)
+          .reduceLeftOption((a, b) => if (a.steps.length < b.steps.length) a else b)
+
+      case 'x' => Some(path)
+      case '#' => None
     }
   }
 
-  private def findExit(currentCell: Cell, exploredCells: Array[Cell]) = {
-
+  private def step(target: Step, path: Path) = {
+    if (path.steps.map(_.start).contains(target.end)) None
+    else shortestPath(target.end, Path(path.steps ::: List(target)))
   }
 
-  private def lookAtCell(currentCell: Cell, cellOpt: Option[Cell], exploredCells: Array[Cell]) = {
-    cellOpt.map{ cell =>
-      cell.value match {
-        case 'e' => currentCell
-        case '#' => currentCell
-        case 'o' => cell
-        case 'x' => cell
-      }
-
-    }
+  private def up(current: Cell) = {
+    cells.find(c => c.xPosition == current.xPosition && c.yPosition == current.yPosition - 1).map(nextCell =>
+      Step(Up, current, nextCell)
+    )
   }
 
-  private def north(start: Cell) = {
-    cells.find(c => c.xPosition == start.xPosition && c.yPosition == start.yPosition + 1)
+  private def down(current: Cell) = {
+    cells.find(c => c.xPosition == current.xPosition && c.yPosition == current.yPosition + 1).map(nextCell =>
+      Step(Down, current, nextCell)
+    )
   }
 
-  private def west(start: Cell) = {
-    cells.find(c => c.xPosition == start.xPosition - 1 && c.yPosition == start.yPosition)
+  private def right(current: Cell) = {
+    cells.find(c => c.xPosition == current.xPosition + 1 && c.yPosition == current.yPosition).map(nextCell =>
+      Step(Right, current, nextCell)
+    )
   }
 
-  private def east(start: Cell) = {
-    cells.find(c => c.xPosition == start.xPosition + 1 && c.yPosition == start.yPosition)
+  private def left(current: Cell) = {
+    cells.find(c => c.xPosition == current.xPosition - 1 && c.yPosition == current.yPosition).map(nextCell =>
+      Step(Left, current, nextCell)
+    )
   }
 
-  private def south(start: Cell) = {
-    cells.find(c => c.xPosition == start.xPosition && c.yPosition == start.yPosition - 1)
-  }
-
-
-  private def entrance = cells.find(_.value == 'e')
-  private def walls = cells.filter(_.value == '#)
-  private def openSpaces = cells.filter(_.value == 'o')
-  private def exit = cells.find(_.value == 'x')
 }
